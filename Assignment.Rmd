@@ -1,0 +1,67 @@
+---
+title: "Group project"
+author: "Eleonora"
+date: "2023-09-13"
+output: html_document
+---
+
+**loading libraries**
+
+```{r, message=FALSE}
+library(tidyverse)
+library(lubridate)
+```
+
+**Importing the CSV files**
+
+```{r}
+in13 <- read.csv('in13.csv', row.names = 1)
+an13 <- read.csv('an13.csv', row.names = 1)
+dati1 <- read.csv('dati1.csv', row.names = 1)
+```
+
+**Let's get a glimpse about our datasets**
+
+```{r}
+# glimpse(in13)
+# glimpse(an13)
+# glimpse(dati1)
+```
+
+
+**Looking for NA values**
+
+```{r}
+sum(is.na(in13))
+sum(is.na(an13))
+sum(is.na(dati1))
+```
+As we can observe, the datasets 'an13' and 'dati1' contains many missing values, while '1n13' has 0 NA.
+
+**Removing NA**
+
+```{r}
+# an13=na.omit(an13)
+# dati1=na.omit(dati1)
+# sum(is.na(an13))
+# sum(is.na(dati1))
+```
+
+**Now let's analyze each csv singularly:**
+
+- in13:
+
+```{r}
+in13$museo=as.factor(in13$museo)
+in13$prov_museo=as.factor(in13$prov_museo)
+in13$com_museo=as.factor(in13$com_museo)
+in13$Date <- paste(in13$datai, in13$orai)
+in13$Date <- strptime(in13$Date, format = "%d/%m/%Y %H:%M")
+
+in13 <- subset(in13, select = -c(datai, orai))
+```
+
+```{r}
+str(in13)
+```
+
