@@ -65,3 +65,4 @@ in13 <- subset(in13, select = -c(datai, orai))
 str(in13)
 ```
 
+Sei carino
