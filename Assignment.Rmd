@@ -3,9 +3,9 @@ title: "Group project"
 author: "Eleonora"
 date: "2023-09-13"
 output:
-  pdf_document: default
-  html_document: default
   word_document: default
+  html_document: default
+  pdf_document: default
 ---
 
 **loading libraries**
@@ -20,7 +20,7 @@ library(dplyr)
 ```{r include=FALSE}
 # Custom theme for visualization
 library(unikn)
-pitaya <- usecol(c('#7A76C2', '#ff6e9c98', '#f62196', '#18c0c4', '#f3907e', '#66E9EC'))
+pitaya <- usecol(c('#ff6e9c98', '#7A76C2', '#f62196', '#18c0c4', '#f3907e', '#66E9EC'))
 
 theme_pitaya <- function(){
   theme_gray() %+%
@@ -49,23 +49,21 @@ dati1 <- read.csv('dati1.csv', row.names = 1)
 # glimpse(dati1)
 ```
 
-**Looking for NA values**
+# Data cleaning
 
-```{r}
-an13$professione <- NULL
-```
+**Looking for NA values**
 
 ```{r}
 sum(is.na(in13))
 sum(is.na(an13))
 sum(is.na(dati1))
+# As we can observe, the datasets 'an13' and 'dati1' 
+# contains many missing values, while '1n13' has 0 NA.
 ```
-
-As we can observe, the datasets 'an13' and 'dati1' contains many missing values, while '1n13' has 0 NA.
 
 **Now let's analyze each csv singularly:**
 
--   in13:
+##   in13:
 
 ```{r}
 in13$museo=as.factor(in13$museo)
@@ -77,6 +75,33 @@ in13$Date <- strptime(in13$Date, format = "%d/%m/%Y %H:%M")
 # in13 <- subset(in13, select = -c(datai, orai))
 ```
 
+##   an13:
+
+```{r}
+sum(is.na(an13$professione)) 
+# The number of NAs in the variable "professione" is 
+# equal to the observations, that means that all the 
+# "professione" observations are NAs, so we remove them
+```
+```{r}
+an13$professione <- NULL
+```
+
+```{r}
+sum(is.na(an13))
+sum(is.na(an13$sesso))
+# As we can see, all the remaining Nas are from the variable sex, other variables
+# have data different from NA.
+```
+
+```{r}
+sum(an13$comune == "DATO MANCANTE")
+
+# Let's remove the missing data from the people without a "comune" variable
+
+an13 <- an13[!(an13$comune == "DATO MANCANTE"),]
+```
+
 ```{r}
 an13$data_inizio <- strptime(an13$data_inizio, format = "%d/%m/%Y %H:%M")
 an13$sesso <- as.factor(an13$sesso)
@@ -84,16 +109,24 @@ an13$data_nascita <- as.integer(an13$data_nascita)
 ```
 
 ```{r}
+sum(is.na(an13))
+```
+
+
+##   dati1:
+
+```{r}
+sum(is.na(dati1$sesso))
+# The number of NAs in the variable "sesso" is pretty much the same
+# in the an13 dataset, at this point we can assume that most of the
+# missing values are the same for both datasets and remove them
+```
+
+```{r}
 dati1$si2013 <- as.factor(dati1$si2013)
 dati1$si2014 <- as.factor(dati1$si2014)
 dati1$sesso <- as.factor(dati1$sesso)
 dati1$cambiocap0512 <- as.factor(dati1$cambiocap0512)
-
-dati1 <- dati1 %>%
-  mutate(abb14 = ifelse(si2014 == 0, 0, abb14))
-
-dati1["nvisite0512"][is.na(dati1["nvisite0512"])] <- 0
-dati1["nmusei0512"][is.na(dati1["nmusei0512"])] <- 0
 
 dati1$ultimo_ing.x <- sub( '(?<=.{6})', '20', dati1$ultimo_ing.x, perl=TRUE)
 dati1$abb13 <- sub( '(?<=.{6})', '20', dati1$abb13, perl=TRUE)
@@ -107,18 +140,43 @@ dati1$abb14 <- sub( '(?<=.{6})', '20', dati1$abb14, perl=TRUE)
 ```
 
 ```{r}
-sum(is.na(dati1))
+sum(is.na(dati1$nvisite0512))
+sum(is.na(dati1$nmusei0512))
+# The number of Nas are the same in the two variables, so we can assume that
+# having no data correspond to not having visited any museum. We then change
+# the Nas to 0
 ```
 
+```{r}
+dati1["nvisite0512"][is.na(dati1["nvisite0512"])] <- 0
+dati1["nmusei0512"][is.na(dati1["nmusei0512"])] <- 0
+```
+
+```{r}
+sum(dati1$si2014 == 0)
+sum(is.na(dati1$abb14))
+# The number of Nas is pretty much the same, so we can assume that customers
+# that have churned from the contract have been recorded with NA in the 
+# "abb14" variable, so we can change their value to 0
+```
+
+```{r}
+dati1 <- dati1 %>%
+  mutate(abb14 = ifelse(si2014 == 0, 0, abb14))
+```
+
+```{r}
+sum(is.na(dati1$prov))
+```
 
 
 **Removing NA**
 
 ```{r}
-# an13 <- na.omit(an13)
-# ati1 <-  na.omit(dati1)
-# sum(is.na(an13))
-# sum(is.na(dati1))
+an13 <- na.omit(an13)
+dati1 <-  na.omit(dati1)
+sum(is.na(an13))
+sum(is.na(dati1))
 ```
 
 
@@ -131,20 +189,53 @@ dati1$agegroup <- cut(dati1$eta13,
                          right = FALSE)
 ```
 
-```{r}
+```{r fig.dim=c(8,6), dpi=200}
 ggplot(data = dati1, aes(x = agegroup)) +
   geom_bar(show.legend = FALSE, fill = '#7A76C2') +
   geom_text(stat = "count", aes(label = after_stat(count)), vjust =-0.3) +
-  theme_pitaya() + scale_fill_manual(values = pitaya)
+  theme_pitaya() + 
+  scale_fill_manual(values = pitaya)
 ```
+
 The above bar chart shows the overall age of customers. It is observed that the number of customers is the highest with an amount of 32,237 at age ranged 60+ which is the older crowd. 
 From age range of 18-29 onwards the frequency of customers increases steadily as the age increase until age ABOVE 60 where a significantly higher frequency of customers was observed. Customers aged below 18 is the lowest at 2,055, this is probably because the company requires the customers to be at least 18 years old to register as a member. Hence, it explains the low number of customers in this range of age.
 
-
-```{r}
+```{r fig.dim=c(8,6), dpi=200}
 ggplot(dati1, aes(x = si2014, fill=si2014)) +
-  geom_bar() +
+  geom_bar(show.legend = FALSE) +
+  labs(title = "Population of Churners and Non-Churners", x = "Churners", y = "Count") +
   geom_text(stat = "count", aes(label = after_stat(count)), vjust =-0.3) +
   theme_pitaya() + scale_fill_manual(values = pitaya)
 ```
+
 Next, shows the population of churners and non-churners. 0 indicates that they are churners while 1 indicates that they are not churners.
+
+```{r}
+dati1$frequency13 <- cut(dati1$nvisit13, 
+                         breaks = c(-Inf, 2, 5, 10, 20, Inf),
+                         labels = c("0-1", "2-5", "5-9","10-19", "20+"),
+                         right = FALSE)
+```
+
+```{r fig.dim=c(8,6), dpi=200}
+ggplot(dati1) +
+  aes(x = frequency13, fill = si2014) +
+  geom_bar() +
+  theme_pitaya() + scale_fill_manual(values = pitaya)
+```
+
+When comparing Churner vs SpendFrequencyRange (see Figure 4), it is noticeable that most of the churners (yes) SpendFrequencyRange of 1, 2, 3, and 4-10 which means that they have only spent less than 10 times. Looking at SpendFrequencyRange of 1, it is almost a half-half distribution where there is a close number of churners and 
+non-churners. This means that the members under the ‘no’ category could be new members while the members in the ‘yes’ category never continued using the card after once.
+
+```{r fig.dim=c(8,6), dpi=200}
+dati1 <- na.omit(dati1)
+ggplot(dati1) +
+  aes(x = frequency13, fill = sesso) +
+  geom_bar(position = "dodge") +
+  theme_pitaya() + scale_fill_manual(values = pitaya)
+```
+
+Above shows the spend frequency range of customers against gender. No matter the age range, females always has higher spend frequency range compared to males.
+
+
+
