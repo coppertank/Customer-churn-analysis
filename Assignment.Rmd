@@ -2,14 +2,35 @@
 title: "Group project"
 author: "Eleonora"
 date: "2023-09-13"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
 ---
 
 **loading libraries**
 
-```{r, message=FALSE}
+```{r message=FALSE}
 library(tidyverse)
 library(lubridate)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r include=FALSE}
+# Custom theme for visualization
+library(unikn)
+pitaya <- usecol(c('#7A76C2', '#ff6e9c98', '#f62196', '#18c0c4', '#f3907e', '#66E9EC'))
+
+theme_pitaya <- function(){
+  theme_gray() %+%
+    theme(panel.background = element_rect(fill = "#EAEAF2"),
+          legend.key = element_rect(fill = "#EAEAF2"),
+          panel.grid.minor = element_blank(), 
+          axis.ticks = element_blank(),
+          axis.title = element_text(size = 12),
+          axis.text = element_text(size = 11))
+}
 ```
 
 **Importing the CSV files**
@@ -28,28 +49,23 @@ dati1 <- read.csv('dati1.csv', row.names = 1)
 # glimpse(dati1)
 ```
 
-
 **Looking for NA values**
+
+```{r}
+an13$professione <- NULL
+```
 
 ```{r}
 sum(is.na(in13))
 sum(is.na(an13))
 sum(is.na(dati1))
 ```
+
 As we can observe, the datasets 'an13' and 'dati1' contains many missing values, while '1n13' has 0 NA.
-
-**Removing NA**
-
-```{r}
-# an13=na.omit(an13)
-# dati1=na.omit(dati1)
-# sum(is.na(an13))
-# sum(is.na(dati1))
-```
 
 **Now let's analyze each csv singularly:**
 
-- in13:
+-   in13:
 
 ```{r}
 in13$museo=as.factor(in13$museo)
@@ -57,12 +73,78 @@ in13$prov_museo=as.factor(in13$prov_museo)
 in13$com_museo=as.factor(in13$com_museo)
 in13$Date <- paste(in13$datai, in13$orai)
 in13$Date <- strptime(in13$Date, format = "%d/%m/%Y %H:%M")
-
-in13 <- subset(in13, select = -c(datai, orai))
+# colnames(in13)[colnames(in13) == "CodCliente"] <- "codcliente"
+# in13 <- subset(in13, select = -c(datai, orai))
 ```
 
 ```{r}
-str(in13)
+an13$data_inizio <- strptime(an13$data_inizio, format = "%d/%m/%Y %H:%M")
+an13$sesso <- as.factor(an13$sesso)
+an13$data_nascita <- as.integer(an13$data_nascita)
 ```
 
-Sei carino
+```{r}
+dati1$si2013 <- as.factor(dati1$si2013)
+dati1$si2014 <- as.factor(dati1$si2014)
+dati1$sesso <- as.factor(dati1$sesso)
+dati1$cambiocap0512 <- as.factor(dati1$cambiocap0512)
+
+dati1 <- dati1 %>%
+  mutate(abb14 = ifelse(si2014 == 0, 0, abb14))
+
+dati1["nvisite0512"][is.na(dati1["nvisite0512"])] <- 0
+dati1["nmusei0512"][is.na(dati1["nmusei0512"])] <- 0
+
+dati1$ultimo_ing.x <- sub( '(?<=.{6})', '20', dati1$ultimo_ing.x, perl=TRUE)
+dati1$abb13 <- sub( '(?<=.{6})', '20', dati1$abb13, perl=TRUE)
+dati1$abb14 <- sub( '(?<=.{6})', '20', dati1$abb14, perl=TRUE)
+
+# dati1$ultimo_ing.x <- strptime(dati1$ultimo_ing.x, format = "%d/%m/%Y")
+# dati1$abb13 <- strptime(dati1$abb13, format = "%d/%m/%Y")
+# dati1$abb14 <- strptime(dati1$abb14, format = "%d/%m/%Y")
+# dati1["nvisite0512"][is.na(dati1["nvisite0512"])] <- 0
+# dati1["nmusei0512"][is.na(dati1["nmusei0512"])] <- 0
+```
+
+```{r}
+sum(is.na(dati1))
+```
+
+
+
+**Removing NA**
+
+```{r}
+# an13 <- na.omit(an13)
+# ati1 <-  na.omit(dati1)
+# sum(is.na(an13))
+# sum(is.na(dati1))
+```
+
+
+# Descriptive Analysis
+
+```{r}
+dati1$agegroup <- cut(dati1$eta13, 
+                         breaks = c(-Inf, 18, 30, 45, 60, Inf),
+                         labels = c("Below 18","18-29","30-44","45-59", "60+"),
+                         right = FALSE)
+```
+
+```{r}
+ggplot(data = dati1, aes(x = agegroup)) +
+  geom_bar(show.legend = FALSE, fill = '#7A76C2') +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust =-0.3) +
+  theme_pitaya() + scale_fill_manual(values = pitaya)
+```
+The above bar chart shows the overall age of customers. It is observed that the number of customers is the highest with an amount of 32,237 at age ranged 60+ which is the older crowd. 
+From age range of 18-29 onwards the frequency of customers increases steadily as the age increase until age ABOVE 60 where a significantly higher frequency of customers was observed. Customers aged below 18 is the lowest at 2,055, this is probably because the company requires the customers to be at least 18 years old to register as a member. Hence, it explains the low number of customers in this range of age.
+
+
+```{r}
+ggplot(dati1, aes(x = si2014, fill=si2014)) +
+  geom_bar() +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust =-0.3) +
+  theme_pitaya() + scale_fill_manual(values = pitaya)
+```
+Next, shows the population of churners and non-churners. 0 indicates that they are churners while 1 indicates that they are not churners.
