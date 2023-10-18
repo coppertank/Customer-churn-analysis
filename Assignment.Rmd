@@ -273,8 +273,8 @@ in13_plot= in13 %>%
 
 ```{r}
 ggplot(an13)+
-  geom_bar(aes(x=tipo_pag, fill=sesso)) +
-  theme_ipsum_rc(grid="Y")
+  geom_bar(aes(x=tipo_pag, fill=sesso)) 
+  #theme_ipsum_rc(grid="Y")
 ```
 
 
