@@ -1,0 +1,77 @@
+```{r}
+library(MASS)
+library(pROC)
+library(tidyverse)
+library(caret)
+library(ggplot2)
+
+sig_var <- read.csv("Data_files/sig_var.csv")
+```
+
+```{r}
+set.seed(1)
+trainIndex <- createDataPartition(sig_var$churn, p=.8, list=FALSE)
+train_set <- sig_var[trainIndex,]
+test_set <- sig_var[-trainIndex,]
+```
+
+
+```{r}
+set.seed(222)
+### Fit Logistic Regression model
+log.fit <- glm(churn ~ ., data = train_set, family = "binomial")
+
+log.pred <- predict.glm(log.fit, newdata = test_set, type = 'response')
+
+log.pred.cat <- ifelse(log.pred > .5, 1, 0)
+
+#Confusion Matrix
+log_cm <- confusionMatrix(table(Predicted = log.pred.cat, Actual = test_set$churn), positive="1")
+log_cm
+
+
+# Create a ROC curve object
+log_roc <- roc(response = test_set$churn, predictor = log.pred)
+
+# Plot the ROC curve
+plot(log_roc, main = "ROC Curve", print.auc = TRUE)
+```
+
+## Linear Discriminant Analysis (LDA)
+
+The Linear Discriminant Analysis (LDA) classifier results from assuming that the observations are drawn from a multivariate Gaussian (or multivariate normal) distribution, with a class-specific mean vector and a common covariance matrix.
+
+```{r message=FALSE, warning=FALSE}
+set.seed(222)
+### Fit LDA model
+lda.fit <- lda(churn ~ ., data = train_set)
+
+lda.pred <- predict(lda.fit, newdata = test_set)
+
+#Confusion Matrix
+lda_cm <- confusionMatrix(table(Predicted = lda.pred$class, Actual = test_set$churn), positive="1")
+lda_cm
+
+# levels = c(0, 1), direction = "<"
+# Plot the ROC curve
+lda_roc <- roc(test_set$churn ~ lda.pred$posterior[,2],plot=T,print.auc=T, levels = c(0, 1), direction = "<")
+```
+
+## Quadratic Discriminant Analysis (QDA)
+
+The Quadratic Discriminant Analysis (QDA) classifier results from assuming that the observations from each class are from a Gaussian distribution, and using estimates for the parameters into Bayes' theorem in order to perform a prediction. It also assumes that each class has its own covariance matrix.
+
+```{r message=FALSE, warning=FALSE}
+set.seed(222)
+### Fit QDA model
+qda.fit <- qda(churn ~ ., data = train_set)
+
+qda.pred <- predict(qda.fit, newdata = test_set)
+
+#Confusion Matrix
+qda.cm <- confusionMatrix(table(Predicted = qda.pred$class, Actual = test_set$churn), positive="1")
+qda.cm
+
+# Plot the ROC curve
+qda_roc <- roc(test_set$churn ~ qda.pred$posterior[,2],plot=T,print.auc=T, levels = c(0, 1), direction = "<")
+```

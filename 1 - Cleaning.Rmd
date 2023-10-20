@@ -38,6 +38,17 @@ in13$prov_museo[in13$museo == "MOSTRA BORN SOMEWHERE"] <- "TO"
 in13$com_museo[in13$museo == "MOSTRA BORN SOMEWHERE"] <- "TORINO"
 ```
 
+### Changing variable type
+
+```{r}
+in13$museo <- as.factor(in13$museo)
+in13$prov_museo <- as.factor(in13$prov_museo)
+in13$com_museo <- as.factor(in13$com_museo)
+in13$datai <- as.Date(in13$datai, "%d/%m/%Y")
+in13$orai <- str_sub(in13$orai, end = -4)
+in13$orai <- as.integer(in13$orai)
+```
+
 ## an13 & dati1
 
 ### Cleaning time variables

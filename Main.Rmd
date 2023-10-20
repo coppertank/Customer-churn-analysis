@@ -1,0 +1,71 @@
+---
+title: "Main"
+author: "Eleonora"
+date: "2023-10-20"
+output: html_document
+---
+
+# Loading libraries
+
+```{r message=FALSE}
+library(corrplot)
+library(leaps)
+library(hrbrthemes)
+library(tidyverse)
+library(caret)
+library(pROC)
+library(nnet)
+library(rpart)
+library(rpart.plot)
+library(ROCR)
+```
+
+
+# Loading the cleaned dataset for models
+
+```{r}
+total_for_models=read.csv('Data_files/total_for_models.csv', row.names = 1)
+total_for_models$churn <- ifelse(total_for_models$si2014 == 0, 1, 0)
+total_for_models$si2014 <- NULL
+```
+
+```{r}
+total_for_models$sconto <- as.factor(total_for_models$sconto)
+total_for_models$riduzione <- as.factor(total_for_models$riduzione)
+total_for_models$tipo_pag <- as.factor(total_for_models$tipo_pag)
+total_for_models$agenzia <- as.factor(total_for_models$agenzia)
+total_for_models$agenzia_tipo <- as.factor(total_for_models$agenzia_tipo)
+total_for_models$sesso <- as.factor(total_for_models$sesso)
+total_for_models$comune <- as.factor(total_for_models$comune)
+total_for_models$churn <- as.factor(total_for_models$churn)
+total_for_models$cambiocap0512 <- as.factor(total_for_models$cambiocap0512)
+total_for_models$nuovo_abb <- as.factor(total_for_models$nuovo_abb)
+```
+
+# Variable Selection
+
+## Best Subset Selection
+
+```{r}
+regfit.full <- regsubsets(churn ~ ., total_for_models)
+```
+
+Here we computed Stepwise Selection, with both Forward and Backward direction, and used AIC as decisional criterion.
+From this analysis we discovered that we have one less significant variable, 'prov', and we removed it. 
+We had also previously eliminated variables: 'si2013', 'si2014', 'abb14', 'agegroup' and 'frequency13'. The reason is the following: 'si2013' contains only one level, 'si2014' is the one we built the variable 'churn' on, 'abb14' has been excluded because we will treat this particular character variable separately, moreover we don't think that the renewal day is significant to predict the 'churn' variable. Finally, 'agegroup' and 'frequency13' has been excluded because they represent the same information contained in 'eta13' and 'nvisit13'.
+
+The remaining variables are: 'nvisit13', 'nabb0512', 'nmus13', 'nvisite0512', 'nmusei0512', 'sesso', 'eta13', 'prezzo13', 'cambiocap0512'.
+
+# Prediction
+
+## Data Partition 80/20 Split
+
+```{r}
+set.seed(1)
+trainIndex <- createDataPartition(total_for_models$churn, p=.8, list=FALSE)
+train_data <- total_for_models[trainIndex,]
+test_data <- total_for_models[-trainIndex,]
+```
+
+
+## Logistic Regression
