@@ -29,6 +29,8 @@ sum(is.na(dati1))
 
 ##   in13:
 
+### General cleaning
+
 ```{r}
 in13$prov_museo[in13$museo == "CENTRO FAUNISTICO UOMINI E LUPI"] <- "CN"
 in13$com_museo[in13$museo == "CENTRO FAUNISTICO UOMINI E LUPI"] <- "ENTRACQUE"
@@ -38,11 +40,23 @@ in13$com_museo[in13$museo == "MOSTRA BORN SOMEWHERE"] <- "TORINO"
 
 ## an13 & dati1
 
-### Pulizia cap
+### Cleaning time variables
 
 ```{r}
-# an13 %>% filter(cap=='XXXXX') #-->2899
+dati1$ultimo_ing.x <- sub( '(?<=.{6})', '20', dati1$ultimo_ing.x, perl=TRUE)
+dati1$abb13 <- sub( '(?<=.{6})', '20', dati1$abb13, perl=TRUE)
+dati1$abb14 <- sub( '(?<=.{6})', '20', dati1$abb14, perl=TRUE)
+dati1$ultimo_ing.x <- as.Date(dati1$ultimo_ing.x, "%d/%m/%Y")
+dati1$abb13 <- as.Date(dati1$abb13, "%d/%m/%Y")
+dati1$abb14 <- as.Date(dati1$abb14, "%d/%m/%Y")
 
+an13$data_inizio <- str_sub(an13$data_inizio, end = -7) # remove hours and minutes
+an13$data_inizio <- as.Date(an13$data_inizio, "%d/%m/%Y")
+```
+
+### Cleaning Cap
+
+```{r}
 turin_caps <- c(10121:10156)
 turin_caps <- as.character(turin_caps)
 
@@ -69,7 +83,7 @@ an13 <- subset(an13, !( cap == 'XXXXX'))
 # an13 %>% filter(cap=='XXXXX')
 ```
 
-### Pulizia comune
+### Cleaning comune
 
 ```{r}
 # an13 %>% filter(comune=='DATO MANCANTE') #-->1238
@@ -85,6 +99,7 @@ an13$comune[missing_comune_rows] <- cap$Comune[matching_indices[missing_comune_r
 # an13 %>% filter(comune=='DATO MANCANTE')
 ```
 
+### General cleaning
 
 ```{r}
 an13 <- an13[an13$data_nascita != "1-01", ]
@@ -118,6 +133,8 @@ an13$cap[an13$codcliente == 211576] <- "10125"
 ```
 
 
+### Merging
+
 ```{r}
 total <- merge(an13, dati1, by="codcliente", all.x = TRUE)
 ```
@@ -134,10 +151,9 @@ total["nvisite0512"][is.na(total["nvisite0512"])] <- 0
 total["nmusei0512"][is.na(total["nmusei0512"])] <- 0
 ```
 
+### Changing variable type
 
 ```{r}
-total$data_inizio <- str_sub(total$data_inizio, end = -7) # remove hours and minutes
-total$data_inizio <- as.Date(total$data_inizio, "%d/%m/%Y")
 total$sesso <- as.factor(total$sesso)
 total$sconto <- as.factor(total$sconto)
 total$riduzione <- as.factor(total$riduzione)
@@ -151,18 +167,14 @@ total$nuovo_abb <- as.factor(total$nuovo_abb)
 total$si2013 <- as.factor(total$si2013)
 total$si2014 <- as.factor(total$si2014)
 total$cambiocap0512 <- as.factor(total$cambiocap0512)
-# dati1$ultimo_ing.x <- sub( '(?<=.{6})', '20', dati1$ultimo_ing.x, perl=TRUE)
-# dati1$abb13 <- sub( '(?<=.{6})', '20', dati1$abb13, perl=TRUE)
-# dati1$abb14 <- sub( '(?<=.{6})', '20', dati1$abb14, perl=TRUE)
-# dati1$ultimo_ing.x <- as.Date(dati1$ultimo_ing.x, "%d/%m/%Y")
-# dati1$abb13 <- as.Date(dati1$abb13, "%d/%m/%Y")
-# dati1$abb14 <- as.Date(dati1$abb14, "%d/%m/%Y")
 ```
 
 
 ```{r}
 sapply(total, function(x) sum(is.na(x)))
 ```
+
+### Creating dataset for models
 
 ```{r}
 total_for_models <- total[, c(-2, -14, -23, -24, -25)]
