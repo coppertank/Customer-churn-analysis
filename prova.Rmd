@@ -1,0 +1,56 @@
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+
+# Cost
+
+#CLV
+
+# First part: COSTS
+```{r}
+in13 <- read.csv("Data_files/in13.csv", row.names = 1)
+
+
+in13_forCLV= in13%>%
+  group_by(CodCliente) %>%
+  summarize(sum=sum(importo))%>%
+  arrange(desc(sum))
+
+in13_forCLV
+mean_value= sum(in13_forCLV$sum)/nrow(in13_forCLV)
+mean_value
+```
+
+30.66 euros is the mean amount of euro that each customer would spend if he/she wouldn't have a card.
+Because the card-association pays each museum 50% of the real price for each visit, they pay around 15 euros annually for each customer.
+
+# Second part: REVENUES
+
+```{r}
+an13 <- read.csv("Data_files/an13.csv", row.names = 1)
+
+an13_forCLV= an13%>%
+  select(codcliente,importo)%>%
+  summarize(sum=sum(importo)/nrow(an13))
+
+an13_forCLV
+```
+
+So the card society gains from each customer: 35-15= 20 euros (on average). 
+Anyway, we must consider that 20 euros is the Customer Value, but we need the Customer Lifetime Value:
+
+
+```{r}
+dati1 <- read.csv("Data_files/dati1.csv", row.names = 1)
+
+dati1_forCLV= dati1%>%
+  select(codcliente,eta13)%>%
+  summarize(mean_age=mean(eta13))
+
+dati1_forCLV
+```
+
+The mean age is 52 years. Considering a normal lifetime of about 86 years, we obtain the CLV:
+CLV=(86-52)x20 = 34x20 = 760 euros
+

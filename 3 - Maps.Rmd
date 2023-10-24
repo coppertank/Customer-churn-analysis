@@ -1,0 +1,163 @@
+```{r message=FALSE, warning=FALSE}
+library(RColorBrewer)
+library(tidyverse)
+library(viridis)
+library(ggplot2)
+library(sf)
+
+total_for_models <- read.csv("Data_files/total.csv")
+map <- st_read("Pipposhape/pippo shape/cap_NO.shp")
+```
+
+```{r}
+total_for_models$cap <- as.factor(total_for_models$cap)
+
+population <- total_for_models %>%
+  group_by(cap) %>%
+  summarize(customers = n(),
+            visits_2013 = round(mean(nvisit13), 2),
+            visits_2012 = round(mean(nvisite0512), 2),
+            subscription = round(mean(nabb0512),2),
+            age = round(mean(eta13), 2),
+            spent = round(mean(importo), 2),
+            churn = round(mean(churn), 2))
+
+colnames(population)[colnames(population) == "cap"] <- "IT_CAP"
+
+n_customers <- merge(map, population, by="IT_CAP", all.x = TRUE)
+```
+
+```{r}
+n_customers %>% 
+  ggplot() +
+  geom_sf(aes(fill=customers)) +
+  scale_fill_viridis(option="turbo", na.value = "lightgrey") +
+  theme_void()
+# ggsave("images/map_customer.png", dpi = 600)
+```
+
+```{r}
+n_customers %>%
+  filter(IT_CAP < 11000) %>%
+  ggplot() +
+  geom_sf(aes(fill=customers)) +
+  scale_fill_viridis(option="turbo", na.value = "lightgrey") +
+  theme_void()
+# ggsave("images/map_customer_TO.png", dpi = 600)
+```
+
+```{r}
+n_customers %>% 
+  ggplot() +
+  geom_sf(aes(fill=visits_2013)) +
+  scale_fill_viridis(option="magma", na.value = "lightgrey") +
+  theme_void()
+# ggsave("images/map_visits_2013.png", dpi = 600)
+```
+```{r}
+n_customers %>%
+  filter(IT_CAP < 11000) %>%
+  ggplot() +
+  geom_sf(aes(fill=visits_2013)) +
+  scale_fill_viridis(option="magma", na.value = "lightgrey") +
+  theme_void()
+# ggsave("images/map_visits_2013_TO.png", dpi = 600)
+```
+
+
+
+```{r}
+n_customers %>% 
+  ggplot() +
+  geom_sf(aes(fill=visits_2012)) +
+  scale_fill_viridis(option="plasma", na.value = "lightgrey") +
+  theme_void()
+# ggsave("images/map_visits_2012.png", dpi = 600)
+```
+
+```{r}
+n_customers %>%
+  filter(IT_CAP < 11000) %>%
+  ggplot() +
+  geom_sf(aes(fill=visits_2012)) +
+  scale_fill_viridis(option="plasma", na.value = "lightgrey") +
+  theme_void()
+# ggsave("images/map_visits_2012_TO.png", dpi = 600)
+```
+
+```{r}
+n_customers %>% 
+  ggplot() +
+  geom_sf(aes(fill=subscription)) +
+  scale_fill_distiller(palette = "Reds", direction = 1, na.value = "lightgrey") +
+  theme_void()
+# ggsave("images/map_subscriptions.png", dpi = 600)
+```
+
+```{r}
+n_customers %>%
+  filter(IT_CAP < 11000) %>%
+  ggplot() +
+  geom_sf(aes(fill=subscription)) +
+  scale_fill_distiller(palette = "Reds", direction = 1, na.value = "lightgrey") +
+  theme_void()
+# ggsave("images/map_subscriptions_TO.png", dpi = 600)
+```
+
+```{r}
+n_customers %>% 
+  ggplot() +
+  geom_sf(aes(fill=age)) +
+  scale_fill_viridis(option="inferno", na.value = "lightgrey") +
+  theme_void()
+# ggsave("images/map_age.png", dpi = 600)
+```
+
+```{r}
+n_customers %>%
+  filter(IT_CAP < 11000) %>%
+  ggplot() +
+  geom_sf(aes(fill=age)) +
+  scale_fill_viridis(option="inferno", na.value = "lightgrey") +
+  theme_void()
+# ggsave("images/map_age_TO.png", dpi = 600)
+```
+
+```{r}
+n_customers %>% 
+  ggplot() +
+  geom_sf(aes(fill=spent)) +
+  scale_fill_viridis(option="inferno", direction=-1, na.value = "lightgrey") +
+  theme_void()
+# ggsave("images/map_spent.png", dpi = 600)
+```
+
+```{r}
+n_customers %>%
+  filter(IT_CAP < 11000) %>%
+  ggplot() +
+  geom_sf(aes(fill=spent)) +
+  scale_fill_viridis(option="inferno", direction=-1, na.value = "lightgrey") +
+  theme_void()
+# ggsave("images/map_spent_TO.png", dpi = 600)
+```
+
+```{r}
+n_customers %>% 
+  ggplot() +
+  geom_sf(aes(fill=churn)) +
+  scale_fill_viridis(option="turbo", na.value = "lightgrey") +
+  theme_void()
+# ggsave("images/map_churn.png", dpi = 600)
+```
+
+```{r}
+n_customers %>%
+  filter(IT_CAP < 11000) %>%
+  ggplot() +
+  geom_sf(aes(fill=churn)) +
+  scale_fill_viridis(option="turbo", na.value = "lightgrey") +
+  theme_void()
+# ggsave("images/map_churn_TO.png", dpi = 600)
+```
+

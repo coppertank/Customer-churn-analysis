@@ -165,19 +165,30 @@ total["nmusei0512"][is.na(total["nmusei0512"])] <- 0
 ### Changing variable type
 
 ```{r}
-total$sesso <- as.factor(total$sesso)
+total$churn <- ifelse(total$si2014 == 0, 1, 0)
+
+total$si2014 <- NULL
+total$si2013 <- NULL
+total$data_nascita <- NULL
+
 total$sconto <- as.factor(total$sconto)
 total$riduzione <- as.factor(total$riduzione)
 total$tipo_pag <- as.factor(total$tipo_pag)
 total$agenzia <- as.factor(total$agenzia)
 total$agenzia_tipo <- as.factor(total$agenzia_tipo)
+total$sesso <- as.factor(total$sesso)
 total$comune <- as.factor(total$comune)
 total$cap <- as.integer(total$cap)
 total$nuovo_abb <- as.factor(total$nuovo_abb)
 
-total$si2013 <- as.factor(total$si2013)
-total$si2014 <- as.factor(total$si2014)
-total$cambiocap0512 <- as.factor(total$cambiocap0512)
+total$data_inizio <- as.integer(month(total$data_inizio))
+total$ultimo_ing.x <- as.integer(month(total$ultimo_ing.x))
+total$abb14 <- as.integer(month(total$abb14))
+total$abb13 <- as.integer(month(total$abb13))
+
+total$ultimo_ing.x <- ifelse(is.na(total$ultimo_ing.x),0, total$ultimo_ing.x)
+total$abb14 <- ifelse(is.na(total$abb14),0, total$abb14)
+total$abb13 <- ifelse(is.na(total$abb13),0, total$abb13)
 ```
 
 
@@ -185,30 +196,11 @@ total$cambiocap0512 <- as.factor(total$cambiocap0512)
 sapply(total, function(x) sum(is.na(x)))
 ```
 
-### Creating dataset for models
-
 ```{r}
-total_for_models <- total[, c(-2, -14, -23, -24, -25)]
+total <- na.omit(total)
 ```
 
-```{r}
-total_for_models <- total_for_models[!is.na(total_for_models$cambiocap0512), ]
-```
-
-```{r}
-sapply(total_for_models, function(x) sum(is.na(x)))
-```
-```{r}
-total_for_models <- na.omit(total_for_models)
-```
-
-```{r}
-total <- total[!is.na(total$abb13), ]
-total <- total[!is.na(total$sesso), ]
-total <- total[!is.na(total$comune), ]
-```
 
 ```{r}
 sapply(total, function(x) sum(is.na(x)))
 ```
-
