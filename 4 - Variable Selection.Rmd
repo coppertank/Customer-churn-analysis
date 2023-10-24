@@ -1,0 +1,162 @@
+```{r message=FALSE, warning=FALSE}
+#install.packages('pdp')
+#library(InformationValue)
+library(reshape2)
+library(earth)
+library(tidyverse)
+library(ggplot2)
+library(corrplot)
+library(tidyverse)
+library(lubridate)
+library(caret)
+library(doParallel)
+library(lattice)
+library(pdp)
+```
+
+
+
+```{r}
+total <- read.csv("Data_files/total.csv", row.names = 1)
+
+total$sconto <- as.factor(total$sconto)
+total$riduzione <- as.factor(total$riduzione)
+total$tipo_pag <- as.factor(total$tipo_pag)
+total$agenzia <- as.factor(total$agenzia)
+total$agenzia_tipo <- as.factor(total$agenzia_tipo)
+total$sesso <- as.factor(total$sesso)
+total$comune <- as.factor(total$comune)
+total$nuovo_abb <- as.factor(total$nuovo_abb)
+```
+
+
+```{r}
+numeric.var <- sapply(total, is.numeric)
+M = cor(total[,numeric.var])
+corrplot(M, method='square', type = 'lower', number.cex = 0.9, tl.cex = 0.7, tl.col = 'black')
+```
+
+```{r}
+total$cap <- as.factor(total$cap)
+total$churn <- as.factor(total$churn)
+total$cambiocap0512 <- as.factor(total$cambiocap0512)
+
+sig_var <- total[ , ! names(total) %in% c("data_inizio", "nmus13", "nmusei0512", "sconto", "tipo_pag", "agenzia", "comune", "cambiocap0512", "abb14")]
+```
+
+
+# MARS
+
+```{r}
+marsModel <- earth(churn ~ ., data=sig_var) # build model
+ev <- evimp (marsModel) # estimate variable importance
+
+evdf = as.data.frame(unclass(ev[,c(4,6)]))
+evdf$variables <- row.names(evdf)
+
+evdf2 <- melt(evdf, id.vars = 'variables')
+
+ggplot(evdf2, aes(x=reorder(variables, value), y=value, fill=variable)) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  scale_fill_manual(values=c('#FFCC70','#22668D' )) +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_minimal() +
+  labs(title = "MARS variable importance") +
+  coord_flip()
+# ggsave("images/MARS.png", dpi = 600)
+```
+
+# BORUTA
+
+```{r}
+library(Boruta)
+# Decide if a variable is important or not using Boruta
+boruta_output <- Boruta(churn ~ ., data=sig_var, doTrace=2)
+
+boruta_signif <- names(boruta_output$finalDecision[boruta_output$finalDecision %in% c("Confirmed", "Tentative")])
+
+print(boruta_signif)
+
+# plot(boruta_output, cex.axis=.7, las=2, xlab="", main="Variable Importance")  # plot variable importance
+```
+```{r}
+process_the_Boruta_data <- function(x, whichShadow=c(TRUE,TRUE,TRUE),
+                                    colCode=c('green','yellow','red','blue'),
+                                    col=NULL) {
+  if(is.null(x$ImpHistory))
+    stop('Importance history was not stored during the Boruta run.')
+  
+  #Removal of -Infs and conversion to a list
+  lz <- lapply(1:ncol(x$ImpHistory),
+               function(i) x$ImpHistory[is.finite(x$ImpHistory[,i]),i])
+  colnames(x$ImpHistory) -> names(lz)
+  
+  #Selection of shadow meta-attributes
+  numShadow <- sum(whichShadow)
+  lz[c(rep(TRUE,length(x$finalDecision)),whichShadow)] -> lz
+  
+  generateCol<-function(x,colCode,col,numShadow){
+    #Checking arguments
+    if(is.null(col) & length(colCode)!=4)
+      stop('colCode should have 4 elements.')
+    #Generating col
+    if(is.null(col)){
+      rep(colCode[4],length(x$finalDecision)+numShadow)->cc
+      cc[c(x$finalDecision=='Confirmed',rep(FALSE,numShadow))]<-colCode[1]
+      cc[c(x$finalDecision=='Tentative',rep(FALSE,numShadow))]<-colCode[2]
+      cc[c(x$finalDecision=='Rejected',rep(FALSE,numShadow))]<-colCode[3]
+      col=cc
+    }
+    return(col)
+  }
+  
+  #Generating color vector
+  col <- generateCol(x, colCode, col, numShadow)
+  
+  #Ordering boxes due to attribute median importance
+  ii<-order(sapply(lz,stats::median))
+  lz[ii] -> lz
+  col <- col[ii]
+  lz_df <- do.call(rbind.data.frame, lz)
+  df <- as.data.frame(t(lz_df))
+  names(df) <- names(lz)
+  rownames(df) <- NULL
+  return(df)
+}
+
+# Apply the function:
+clean_Bor.hvo <- process_the_Boruta_data(boruta_output)
+
+# Plot the data:
+clean_Bor.hvo %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(x = fct_reorder(name, value, median), y = value)) +
+  geom_boxplot(alpha = 0.5) +
+  theme_minimal() +
+  scale_fill_viridis_d(aesthetics = c('color', 'fill'), end = 0.8) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5)) +
+  labs(title = "Boruta's variable importance")
+# ggsave("images/boruta.png", dpi = 600)
+```
+
+# Information value and Weight of evidence
+
+```{r}
+factor_vars <- c ("riduzione", "agenzia_tipo", "sesso", "cap", "nuovo_abb")  # get all categorical variables
+all_iv <- data.frame(VARS=factor_vars, IV=numeric(length(factor_vars)), STRENGTH=character(length(factor_vars)), stringsAsFactors = F)  # init output dataframe
+for (factor_var in factor_vars){
+  all_iv[all_iv$VARS == factor_var, "IV"] <- InformationValue::IV(X=sig_var[, factor_var], Y=sig_var$churn)
+  all_iv[all_iv$VARS == factor_var, "STRENGTH"] <- attr(InformationValue::IV(X=sig_var[, factor_var], Y=sig_var$churn), "howgood")
+}
+
+all_iv <- all_iv[order(-all_iv$IV), ]  # sort
+
+all_iv
+```
+
+```{r}
+sig_var <- sig_var[ , ! names(sig_var) %in% c("sesso", "nuovo_abb", "agenzia_tipo")]
+```
+
